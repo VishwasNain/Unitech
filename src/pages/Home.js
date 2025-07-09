@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-
 import { 
-  Container, 
-  Grid, 
-  Typography, 
+  Container,
+  Grid,
+  Typography,
   Box,
   Card,
   CardContent,
@@ -14,9 +13,17 @@ import {
   CardMedia,
   IconButton,
   TextField,
-  Alert
+  Alert,
+  InputAdornment,
+  styled,
+  useTheme,
+  useMediaQuery,
+  SwipeableDrawer,
+  Slider,
+  Pagination,
+  Avatar
 } from '@mui/material';
-import { 
+import {
   LaptopMac,
   PhoneAndroid,
   Tv,
@@ -25,340 +32,277 @@ import {
   Gamepad,
   Speaker,
   DesktopWindows,
-  Computer
+  Computer,
+  Search,
+  CheckCircle,
+  LocalShipping,
+  ThumbUp,
+  FiberManualRecord,
+  KeyboardArrowLeft,
+  KeyboardArrowRight
 } from '@mui/icons-material';
-import { Email as EmailIcon, Feedback as FeedbackIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { styled } from '@mui/material/styles';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { formatPrice } from '../utils/currency';
-
-const HeroSection = styled(Box)(({ theme }) => ({
-  height: '600px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: 'white',
-  backgroundImage: `url('/images/Herobanner.jpeg')`,
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-  backgroundRepeat: 'no-repeat',
-  position: 'relative',
-  overflow: 'hidden'
-}));
-
-const HeroOverlay = styled(Box)({
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5))',
-  zIndex: 1
-});
-
-const HeroText = styled(Box)(({ theme }) => ({
-  textAlign: 'center',
-  mb: 4,
-  '& h1': {
-    fontSize: { xs: '2.5rem', md: '3.5rem' },
-    fontWeight: 700,
-    background: 'linear-gradient(45deg, #2196f3 0%, #0d47a1 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    marginBottom: theme.spacing(2)
-  },
-  '& p': {
-    fontSize: { xs: '1.1rem', md: '1.25rem' },
-    opacity: 0.9,
-    maxWidth: '600px',
-    margin: '0 auto',
-    marginBottom: theme.spacing(4),
-    lineHeight: 1.6
-  }
-}));
+import theme from '../theme/theme';
 
 const CategoryCard = styled(Card)(({ theme }) => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  padding: theme.spacing(2),
+  padding: theme.spacing(3),
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  backdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  '&:hover': {
+    transform: 'translateY(-10px)',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
+  },
+  cursor: 'pointer',
+}));
+
+const FeatureCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(2),
+  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  backdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: '12px',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-5px)',
+    boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)',
+  },
+}));
+
+const HeroSection = styled(Box)({
+  background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)',
+  padding: '80px 0',
+  borderRadius: '20px',
+  marginBottom: '40px',
+});
+
+const TestimonialCard = styled(Card)(({ theme }) => ({
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  padding: theme.spacing(4),
   transition: 'transform 0.3s ease',
+  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  backdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
   '&:hover': {
     transform: 'translateY(-5px)',
   },
-  cursor: 'pointer'
+  borderRadius: '20px',
+  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
 }));
+
+const TestimonialSection = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(8, 0),
+  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  backdropFilter: 'blur(10px)',
+}));
+
+const GradientText = styled(Typography)({
+  background: 'linear-gradient(45deg, #2563eb, #10b981)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  fontWeight: 700,
+});
 
 const Home = () => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [email, setEmail] = useState('');
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-  const [emailError, setEmailError] = useState('');
-
-  const handleEmailSubmit = (e) => {
-    e.preventDefault();
-    // Validate email
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError('Please enter a valid email address');
-      return;
-    }
-    
-    // Simulate email submission
-    setEmailError('');
-    setEmailSent(true);
-    setTimeout(() => {
-      setEmailSent(false);
-      setEmail('');
-    }, 3000);
-  };
-
-  const handleFeedbackClick = () => {
-    window.location.href = '/contact';
-  };
-
-  const products = [
-    {
-      id: 1,
-      name: "Apple MacBook Pro M3 16-inch",
-      brand: "Apple",
-      model: "M3 Pro",
-      price: 899.99,
-      rating: 4.8,
-      description: "Powerful MacBook Pro with M3 chip designed for professionals. Exceptional performance and battery life in a sleek design.",
-      specs: {
-        processor: "Apple M3",
-        ram: "18GB Unified Memory",
-        storage: "512GB SSD",
-        display: "16-inch Liquid Retina XDR display",
-        graphics: "Apple M3 graphics",
-        battery: "Up to 22 hours",
-        weight: "3.5 pounds",
-        color: "Silver"
-      },
-      images: [
-        '/images/M3 pro.png',
-        '/images/M3 pro.png',
-        '/images/M3 pro.png'
-      ],
-      category: "Laptops"
+  const categories = [
+    { 
+      icon: LaptopMac, 
+      label: 'Laptops',
+      path: '/products/laptops'
+    },
+    { 
+      icon: DesktopWindows, 
+      label: 'Desktops',
+      path: '/products/desktops'
+    },
+    { 
+      icon: Computer, 
+      label: 'Accessories',
+      path: '/products/accessories'
     }
   ];
 
-  const categories = [
-    {
-      id: 1,
-      title: 'Laptops',
-      color: '#2196F3',
-      icon: <LaptopMac sx={{ fontSize: 40 }} />
-    },
-    {
-      id: 2,
-      title: 'Desktops',
-      color: '#9C27B0',
-      icon: <DesktopWindows sx={{ fontSize: 40 }} />
-    },
-    {
-      id: 3,
-      title: 'Accessories',
-      color: '#FF9800',
-      icon: <Computer sx={{ fontSize: 40 }} />
-    }
+  const features = [
+    { icon: CheckCircle, label: 'Free Shipping', color: '#10b981' },
+    { icon: LocalShipping, label: '24/7 Support', color: '#2563eb' },
   ];
 
   const testimonials = [
     {
-      id: 1,
-      name: 'John Doe',
-      testimonial: 'Great service and quality products!',
+      name: 'John Smith',
+      role: 'Software Developer',
       rating: 5,
-      avatar: ''
+      content: "I've been shopping at Unitech for years and their customer service is top-notch. They always have the latest technology at great prices.",
+      image: '/images/testimonial1.jpg'
     },
     {
-      id: 2,
-      name: 'Jane Smith',
-      testimonial: 'Found exactly what I needed at a great price.',
-      rating: 4.5,
-      avatar: ''
+      name: 'Sarah Johnson',
+      role: 'Graphic Designer',
+      rating: 5,
+      content: "The quality of products at Unitech is exceptional. I've never had any issues with my purchases and their delivery is always on time.",
+      image: '/images/testimonial2.jpg'
     }
   ];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Container maxWidth="lg" sx={{ py: 0, flexGrow: 1 }}>
-        <HeroText>
-          <Typography
-            variant="h2"
-            component="h1"
-            gutterBottom
-          >
-            Your One-Stop Shop for Quality Electronics
-          </Typography>
-          <Typography
-            variant="h5"
-            component="p"
-          >
-            Discover the best deals on refurbished and new electronics
-          </Typography>
-        </HeroText>
-
-        {/* Hero Section */}
-        <HeroSection>
-          <HeroOverlay />
-        </HeroSection>
-
-        {/* Featured Categories */}
-        <Box sx={{ my: 4, flexGrow: 1 }}>
-          <Typography variant="h4" gutterBottom>
-            Featured Categories
-          </Typography>
-          <Grid container spacing={3}>
-            {categories.map((category) => (
-              <Grid item xs={12} sm={6} md={3} key={category.id}>
-                <CategoryCard>
-                  <Box sx={{ 
-                    width: 64, 
-                    height: 64, 
-                    mb: 2, 
-                    borderRadius: '50%',
-                    backgroundColor: category.color,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {category.icon}
-                  </Box>
-                  <Typography variant="h6" gutterBottom>
-                    {category.title}
-                  </Typography>
-                  <Button 
-                    variant="outlined" 
-                    fullWidth
-                    onClick={() => navigate(`/products?category=${category.title.toLowerCase()}`)}
-                  >
-                    Browse {category.title}
-                  </Button>
-                </CategoryCard>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-
-        {/* Featured Products */}
-        <Box sx={{ my: 4, flexGrow: 1 }}>
-          <Typography variant="h4" gutterBottom>
-            Featured Products
-          </Typography>
-          <Grid container spacing={3}>
-            {products.map((product) => (
-              <Grid item xs={12} sm={6} md={4} key={product.id}>
-                <Card>
-                  <CardMedia
-                    component="img"
-                    height="140"
-                    image={product.images[0]}
-                    alt={product.name}
-                  />
-                  <CardContent>
-                    <Typography gutterBottom variant="h6" component="div">
-                      {product.name}
-                    </Typography>
-                    <Typography variant="subtitle1" color="primary">
-                      {formatPrice(product.price)}
-                    </Typography>
-                    <Rating value={product.rating} readOnly precision={0.5} />
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Brand:</strong> {product.brand}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Model:</strong> {product.model}
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      sx={{ mt: 2 }}
-                      onClick={() => navigate(`/product/${product.id}`, { state: product })}
-                    >
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-
-        {/* Call to Action */}
-        <Box sx={{ my: 4, flexGrow: 1 }}>
-          <Paper
-            elevation={3}
-            sx={{
-              p: 4,
-              textAlign: 'center',
-              bgcolor: '#f5f5f5',
-              borderRadius: 2,
-              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-              transition: 'transform 0.2s ease-in-out',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-              }
-            }}
-          >
-            <Typography variant="h4" component="h2" gutterBottom>
-              Get in Touch
-            </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              Subscribe to our newsletter and stay updated with our latest offers and promotions.
-            </Typography>
-
-            {emailSent ? (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                Thank you for subscribing!
-              </Alert>
-            ) : emailError ? (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {emailError}
-              </Alert>
-            ) : null}
-
-            <Box sx={{ mb: 3 }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
+      <HeroSection>
+        <Container maxWidth="lg">
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <GradientText variant="h1" gutterBottom>
+                Welcome to Unitech Computers
+              </GradientText>
+              <Typography variant="h2" color="text.secondary" paragraph>
+                Discover the latest in technology
+              </Typography>
               <TextField
                 fullWidth
-                label="Enter your email"
-                variant="outlined"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={!!emailError}
-                helperText={emailError}
-                sx={{ mb: 2 }}
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                  },
+                }}
               />
-              <Button
-                variant="contained"
-                color="primary"
-                size="large"
-                startIcon={<EmailIcon />}
-                onClick={handleEmailSubmit}
-                disabled={!email || emailError}
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box
+                sx={{
+                  height: '400px',
+                  background: 'linear-gradient(45deg, #2563eb, #10b981)',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0.9,
+                }}
               >
-                Subscribe
-              </Button>
-            </Box>
+                <Typography variant="h2" color="white">
+                  Explore Now
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Container>
+      </HeroSection>
 
-            <Box sx={{ mt: 3 }}>
-              <Button
-                variant="outlined"
-                size="large"
-                startIcon={<FeedbackIcon />}
-                onClick={handleFeedbackClick}
-              >
-                Send Feedback
-              </Button>
-            </Box>
-          </Paper>
-        </Box>
+      <Container maxWidth="lg" sx={{ mt: 8 }}>
+        <Typography variant="h2" gutterBottom>
+          Shop by Category
+        </Typography>
+        <Grid container spacing={3}>
+          {categories.map((category, index) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <RouterLink to={category.path} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <CategoryCard>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                    <category.icon sx={{ fontSize: 60 }} />
+                  </Box>
+                  <Typography variant="h5" align="center">
+                    {category.label}
+                  </Typography>
+                </CategoryCard>
+              </RouterLink>
+            </Grid>
+          ))}
+        </Grid>
       </Container>
+
+      <Box sx={{ mt: 8, mb: 4 }}>
+        <Container maxWidth="lg">
+          <Typography variant="h2" gutterBottom sx={{ textAlign: 'center' }}>
+            Why Choose Us
+          </Typography>
+          <Grid container spacing={3}>
+            {features.map((feature, index) => (
+              <Grid item xs={12} sm={4} key={index}>
+                <FeatureCard>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ color: feature.color }}>
+                      <feature.icon sx={{ fontSize: '24px' }} />
+                    </Box>
+                    <Typography variant="h6" color="text.primary">
+                      {feature.label}
+                    </Typography>
+                  </Box>
+                </FeatureCard>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
+
+      <TestimonialSection>
+        <Container maxWidth="lg">
+          <Typography variant="h2" gutterBottom sx={{ textAlign: 'center', mb: 6 }}>
+            What Our Customers Say
+          </Typography>
+          <Grid container spacing={4}>
+            {testimonials.map((testimonial, index) => (
+              <Grid item xs={12} sm={6} key={index}>
+                <TestimonialCard>
+                  <Box sx={{ width: '100%', textAlign: 'center' }}>
+                    <Avatar src={testimonial.image} sx={{ width: 80, height: 80, mb: 2 }} />
+                    <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
+                      {testimonial.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      {testimonial.role}
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 3 }}>
+                      "{testimonial.content}"
+                    </Typography>
+                    <Rating
+                      value={testimonial.rating}
+                      precision={0.5}
+                      readOnly
+                      size="medium"
+                      sx={{ color: '#ffd700' }}
+                    />
+                  </Box>
+                </TestimonialCard>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </TestimonialSection>
     </Box>
   );
 };
