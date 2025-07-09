@@ -38,7 +38,7 @@ import LaptopMac from '@mui/icons-material/LaptopMac';
 import DesktopWindows from '@mui/icons-material/DesktopWindows';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CloseIcon from '@mui/icons-material/Close';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/currency';
 
@@ -113,8 +113,11 @@ const StyledProductImage = styled(CardMedia)(({ theme }) => ({
 
 const Products = () => {
   const { category } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [selectedCondition, setSelectedCondition] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [openDetails, setOpenDetails] = useState(false);
@@ -444,10 +447,34 @@ const Products = () => {
   // Get all products from all categories
   const allProducts = Object.values(productsByCategory).flat();
 
+  // Get search term from URL parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const search = searchParams.get('search');
+    if (search) {
+      setSearchTerm(search);
+    }
+  }, [location.search]);
+
   // Filter products based on category
   const filteredProducts = category 
     ? productsByCategory[category] || []
     : allProducts;
+
+  // Get search suggestions
+  useEffect(() => {
+    if (searchTerm.length > 1) {
+      const suggestions = filteredProducts
+        .filter(product => 
+          product.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .map(product => product.name)
+        .slice(0, 5);
+      setSearchSuggestions(suggestions);
+    } else {
+      setSearchSuggestions([]);
+    }
+  }, [searchTerm, filteredProducts]);
 
   // Filter by search term
   const searchFilteredProducts = filteredProducts.filter(product => 
@@ -458,6 +485,16 @@ const Products = () => {
   const conditionFilteredProducts = searchFilteredProducts.filter(product => 
     selectedCondition === 'all' || product.condition === selectedCondition
   );
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    if (value.trim()) {
+      navigate(`/products?search=${encodeURIComponent(value)}`);
+    } else {
+      navigate('/products');
+    }
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
@@ -477,12 +514,35 @@ const Products = () => {
             size="small"
             placeholder="Search products..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
                   <SearchIcon />
                 </InputAdornment>
+              ),
+              endAdornment: searchSuggestions.length > 0 && (
+                <Box sx={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1, backgroundColor: 'background.paper', boxShadow: 2 }}>
+                  {searchSuggestions.map((suggestion, index) => (
+                    <Button
+                      key={index}
+                      fullWidth
+                      onClick={() => {
+                        setSearchTerm(suggestion);
+                        navigate(`/products?search=${encodeURIComponent(suggestion)}`);
+                      }}
+                      sx={{
+                        justifyContent: 'flex-start',
+                        textTransform: 'none',
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                        },
+                      }}
+                    >
+                      {suggestion}
+                    </Button>
+                  ))}
+                </Box>
               ),
             }}
           />

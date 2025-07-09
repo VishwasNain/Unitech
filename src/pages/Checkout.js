@@ -1,225 +1,290 @@
 import React, { useState } from 'react';
-import { 
-  Container, 
-  Grid, 
-  Typography, 
-  Box,
-  Card,
-  CardContent,
-  Button,
-  TextField,
+import {
+  Container,
+  Grid,
   Paper,
-  Divider,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  Stepper,
+  Step,
+  StepLabel,
   Alert,
-  CircularProgress
+  Divider,
+  FormControlLabel,
+  Radio,
+  RadioGroup,
+  FormControl,
+  FormLabel,
+  CircularProgress,
+  useTheme
 } from '@mui/material';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/UserContext';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { useCart } from '../context/CartContext';
+import { formatPrice } from '../utils/currency';
+
+const steps = ['Shipping Address', 'Payment Details', 'Review Order'];
 
 const Checkout = () => {
-  const { cartItems, totalPrice } = useCart();
-  const { user, login, logout } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { cartItems, totalPrice, checkout } = useCart();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
-    name: '',
-    email: user?.email || '',
+    fullName: '',
+    email: '',
     phone: '',
     address: '',
     city: '',
     state: '',
     pincode: '',
+    paymentMethod: 'cod',
   });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    setLoading(true);
-    // Here you would typically make an API call to process the order
-    // For now, we'll just simulate the process
-    setTimeout(() => {
-      setLoading(false);
-      // Clear cart and show success message
-      navigate('/order-confirmation');
-      toast.success('Order placed successfully!');
-    }, 2000);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const validateForm = () => {
-    if (!formData.name) {
-      setError('Please enter your name');
-      return false;
-    }
-    if (!formData.phone) {
-      setError('Please enter your phone number');
-      return false;
-    }
-    if (!formData.address) {
-      setError('Please enter your address');
-      return false;
-    }
-    if (!formData.city) {
-      setError('Please enter your city');
-      return false;
-    }
-    if (!formData.state) {
-      setError('Please enter your state');
-      return false;
-    }
-    if (!formData.pincode) {
-      setError('Please enter your pincode');
+  const handleNext = () => {
+    if (activeStep === 0 && !validateAddress()) return;
+    if (activeStep === 1 && !validatePayment()) return;
+    setActiveStep(prev => prev + 1);
+  };
+
+  const handleBack = () => {
+    setActiveStep(prev => prev - 1);
+  };
+
+  const validateAddress = () => {
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.address ||
+        !formData.city || !formData.state || !formData.pincode) {
+      setError('Please fill in all required fields');
       return false;
     }
     setError('');
     return true;
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const validatePayment = () => {
+    if (!formData.paymentMethod) {
+      setError('Please select a payment method');
+      return false;
+    }
+    setError('');
+    return true;
   };
 
-  if (cartItems.length === 0) {
-    return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Typography variant="h5" component="h1" gutterBottom>
-          Your cart is empty
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Please add some items to your cart before proceeding to checkout.
-        </Typography>
-      </Container>
-    );
-  }
+  const handleCheckout = async () => {
+    if (!validateAddress() || !validatePayment()) return;
 
-  return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Checkout
-      </Typography>
+    setLoading(true);
+    setError('');
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+    try {
+      const result = await checkout();
+      if (result.success) {
+        navigate('/checkout-success');
+      } else {
+        setError('Checkout failed. Please try again.');
+      }
+    } catch (err) {
+      setError(err.message || 'An error occurred during checkout');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
+  const getStepContent = (step) => {
+    switch (step) {
+      case 0:
+        return (
+          <Box>
             <Typography variant="h6" gutterBottom>
-              Shipping Information
+              Shipping Address
             </Typography>
-            <form onSubmit={handleSubmit}>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Full Name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    disabled
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Phone Number"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="City"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="State"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Pincode"
-                    name="pincode"
-                    value={formData.pincode}
-                    onChange={handleChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    disabled={loading}
-                  >
-                    {loading ? <CircularProgress size={24} /> : 'Place Order'}
-                  </Button>
-                </Grid>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Full Name"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                />
               </Grid>
-            </form>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Address"
+                  name="address"
+                  multiline
+                  rows={3}
+                  value={formData.address}
+                  onChange={handleInputChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  label="City"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  label="State"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleInputChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Pincode"
+                  name="pincode"
+                  type="number"
+                  value={formData.pincode}
+                  onChange={handleInputChange}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        );
+      case 1:
+        return (
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Payment Details
+            </Typography>
+            <FormControl component="fieldset" sx={{ mt: 3 }}>
+              <FormLabel component="legend">Payment Method</FormLabel>
+              <RadioGroup
+                row
+                value={formData.paymentMethod}
+                onChange={handleInputChange}
+                name="paymentMethod"
+              >
+                <FormControlLabel
+                  value="cod"
+                  control={<Radio />}
+                  label="Cash on Delivery"
+                />
+                <FormControlLabel
+                  value="card"
+                  control={<Radio />}
+                  label="Credit/Debit Card"
+                />
+              </RadioGroup>
+            </FormControl>
+          </Box>
+        );
+      case 2:
+        return (
+          <Box>
             <Typography variant="h6" gutterBottom>
               Order Summary
             </Typography>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="body1">
-              Total Items: {cartItems.length}
-            </Typography>
-            <Typography variant="body1">
-              Total Price: ₹{totalPrice.toFixed(2)}
-            </Typography>
-          </Paper>
-        </Grid>
-      </Grid>
+            <Paper sx={{ p: 2, mt: 2 }}>
+              {cartItems.map((item) => (
+                <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography>{item.name}</Typography>
+                  <Typography>
+                    {item.quantity} x {formatPrice(item.price)}
+                  </Typography>
+                </Box>
+              ))}
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                <Typography>Total:</Typography>
+                <Typography>{formatPrice(totalPrice)}</Typography>
+              </Box>
+            </Paper>
+          </Box>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Paper sx={{ p: 3 }}>
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {getStepContent(activeStep)}
+
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+          {activeStep !== 0 && (
+            <Button onClick={handleBack} sx={{ mr: 1 }}>
+              Back
+            </Button>
+          )}
+          {activeStep === steps.length - 1 ? (
+            <Button
+              variant="contained"
+              onClick={handleCheckout}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Place Order'}
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              onClick={handleNext}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Next'}
+            </Button>
+          )}
+        </Box>
+      </Paper>
     </Container>
   );
 };

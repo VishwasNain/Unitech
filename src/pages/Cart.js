@@ -24,18 +24,24 @@ import { useNavigate } from 'react-router-dom';
 import { formatPrice } from '../utils/currency';
 
 const Cart = () => {
-  const { cartItems, totalPrice, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { cartItems, totalPrice, removeFromCart, updateQuantity, clearCart, checkout } = useCart();
   const navigate = useNavigate();
   const [coupon, setCoupon] = useState('');
   const [discount, setDiscount] = useState(0);
   const [showDiscountAlert, setShowDiscountAlert] = useState(false);
 
   const handleRemoveItem = (productId) => {
-    removeFromCart(productId);
+    if (window.confirm('Are you sure you want to remove this item?')) {
+      removeFromCart(productId);
+    }
   };
 
   const handleQuantityChange = (productId, newQuantity) => {
-    updateQuantity(productId, newQuantity);
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+    } else {
+      updateQuantity(productId, parseInt(newQuantity));
+    }
   };
 
   const handleCouponApply = () => {
@@ -98,13 +104,10 @@ const Cart = () => {
                       <Typography variant="h6" gutterBottom>
                         {item.name}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {formatPrice(item.price)}
+                      <Typography variant="body1" color="text.secondary">
+                        Price: {formatPrice(item.price)}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Quantity: {item.quantity}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                         <IconButton
                           onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                           disabled={item.quantity <= 1}
@@ -112,15 +115,15 @@ const Cart = () => {
                           <RemoveIcon />
                         </IconButton>
                         <TextField
-                          size="small"
                           type="number"
                           value={item.quantity}
-                          onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value) || 1)}
+                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                          size="small"
                           sx={{ mx: 1, width: '60px' }}
                           inputProps={{
                             min: 1,
-                            max: 10,
-                            type: 'number'
+                            max: 100,
+                            style: { textAlign: 'center' }
                           }}
                         />
                         <IconButton
@@ -129,17 +132,13 @@ const Cart = () => {
                           <AddIcon />
                         </IconButton>
                       </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                        <Button
-                          variant="outlined"
-                          startIcon={<DeleteIcon />}
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                        <IconButton
+                          color="error"
                           onClick={() => handleRemoveItem(item.id)}
                         >
-                          Remove
-                        </Button>
-                        <Typography variant="h6" color="primary">
-                          {formatPrice(item.price * item.quantity)}
-                        </Typography>
+                          <DeleteIcon />
+                        </IconButton>
                       </Box>
                     </Grid>
                   </Grid>
@@ -150,57 +149,32 @@ const Cart = () => {
 
           {/* Cart Summary */}
           <Grid item xs={12} md={4}>
-            <Paper elevation={3} sx={{ p: 3, height: 'fit-content' }}>
+            <Paper sx={{ p: 3, height: 'fit-content' }}>
               <Typography variant="h6" gutterBottom>
                 Cart Summary
               </Typography>
               <Divider sx={{ my: 2 }} />
-              
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                 <Typography>Subtotal:</Typography>
-                <Typography variant="h6" color="primary">
-                  {formatPrice(totalPrice)}
-                </Typography>
+                <Typography>{formatPrice(totalPrice)}</Typography>
               </Box>
-
-              {showDiscountAlert && (
-                <Alert severity={discount > 0 ? 'success' : 'error'} sx={{ mb: 2 }}>
-                  {discount > 0 ? `Coupon applied! ${discount}% discount` : 'Invalid coupon code'}
-                </Alert>
-              )}
-
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                 <Typography>Discount:</Typography>
-                <Typography variant="h6" color="primary">
-                  {discount > 0 ? `-${formatPrice((totalPrice * discount) / 100)}` : '₹0.00'}
-                </Typography>
+                <Typography>{discount}%</Typography>
               </Box>
-
               <Divider sx={{ my: 2 }} />
-
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h6">Total:</Typography>
-                <Typography variant="h6" color="primary">
-                  {formatPrice(finalPrice)}
-                </Typography>
+                <Typography variant="h6">{formatPrice(finalPrice)}</Typography>
               </Box>
-
               <Button
                 variant="contained"
+                size="large"
                 fullWidth
                 onClick={handleCheckout}
                 sx={{ mt: 2 }}
               >
                 Proceed to Checkout
-              </Button>
-
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={clearCart}
-                sx={{ mt: 2 }}
-              >
-                Clear Cart
               </Button>
             </Paper>
           </Grid>

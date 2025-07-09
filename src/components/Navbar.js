@@ -129,8 +129,16 @@ const Navbar = () => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    navigate(`/products?search=${searchTerm}`);
+    if (searchTerm.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchTerm)}`);
+    }
     handleSearchClose();
+  };
+
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit(e);
+    }
   };
 
   const menuItems = [
@@ -165,10 +173,15 @@ const Navbar = () => {
                 width: 40,
                 objectFit: 'contain',
               },
+              cursor: 'pointer',
+              '&:hover': {
+                textDecoration: 'none',
+              },
             }}
+            onClick={() => navigate('/')}
           >
             UNITECH COMPUTERS
-           </Typography>
+          </Typography>
 
           <Search>
             <SearchIconWrapper>
@@ -179,7 +192,7 @@ const Navbar = () => {
               inputProps={{ 'aria-label': 'search' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearchClose()}
+              onKeyPress={handleSearchKeyPress}
             />
           </Search>
 
@@ -250,7 +263,10 @@ const Navbar = () => {
             color="primary"
             fullWidth
             sx={{ mt: 2 }}
-            onClick={() => window.location.href = '/cart'}
+            onClick={() => {
+              handleCartClose();
+              navigate('/cart');
+            }}
           >
             View Cart
           </Button>

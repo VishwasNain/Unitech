@@ -2,18 +2,25 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import theme from './theme/theme';
+import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Products from './pages/Products';
-import Navbar from './components/Navbar';
+import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import CheckoutSuccess from './pages/CheckoutSuccess';
+import Blog from './pages/Blog';
+import Orders from './pages/Orders';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import Footer from './components/Footer';
+import { UserProvider } from './context/UserContext';
 import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/UserContext';
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
+      <UserProvider>
         <CartProvider>
           <Router>
             <Navbar />
@@ -22,14 +29,19 @@ function App() {
               <Route path="/products" element={<Products />} />
               <Route path="/products/:category" element={<Products />} />
               <Route path="/product/:id" element={<Products />} />
-              <Route path="/cart" element={<Home />} />
-              <Route path="/checkout" element={<Home />} />
-              <Route path="/blog" element={<Home />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/checkout-success" element={<CheckoutSuccess />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/order/:id" element={<Orders />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
             </Routes>
             <Footer />
           </Router>
         </CartProvider>
-      </AuthProvider>
+      </UserProvider>
     </ThemeProvider>
   );
 }
